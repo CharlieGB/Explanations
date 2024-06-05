@@ -17,9 +17,9 @@ class SOM(object):
 
         return
 
-    def Update(self, state, best_unit, reward_value):
+    def Update(self, state, unit, error, update_mask):
 
-        self.SOM_layer.Update(state, best_unit, reward_value)
+        self.SOM_layer.Update(state, unit, error, update_mask)
 
         return
 
@@ -32,8 +32,8 @@ class SOM(object):
 
     def PlotResults(self, plot_num):
 
-        self.PlotMap(plot_num)
-        self.PlotLocations(plot_num)
+        #self.PlotMap(plot_num)
+        #self.PlotLocations(plot_num)
 
         return
 
@@ -66,7 +66,7 @@ class SOM(object):
 
         plt.figure()
         plt.imshow(im_grid)
-        plt.savefig(self.directory + 'SOMLocations%06d.pdf' % plot_num)
+        plt.savefig(self.directory + 'SOMLocations%06d.png' % plot_num)
         plt.close()
 
         np.save(self.directory + 'SOMLocations', im_grid)

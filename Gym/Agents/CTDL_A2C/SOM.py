@@ -1,5 +1,5 @@
 
-from Gym.Agents.CTDL.SOMLayer import SOMLayer
+from Gym.Agents.CTDL_A2C.SOMLayer import SOMLayer
 
 
 class DeepSOM(object):
@@ -11,9 +11,9 @@ class DeepSOM(object):
 
         return
 
-    def Update(self, state, best_unit, reward_value):
+    def Update(self, state, best_unit, reward_value, update_mask):
 
-        self.SOM_layer.Update(state, best_unit, reward_value)
+        self.SOM_layer.Update(state, best_unit, reward_value, update_mask)
 
         return
 

@@ -95,7 +95,7 @@ class Agent(object):
         return action
 
 
-    def PlotResults(self):
+    def PlotResults(self, task):
 
         plt.figure()
         plt.plot(self.results['rewards'])

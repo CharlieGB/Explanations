@@ -1,7 +1,7 @@
 from GridWorld.Functions.Parsers import ParseIntoDataframes
 from GridWorld.Functions.Plotters import PlotComparisons, PlotPairwiseComparison
 
-dir = 'RandomSeedSweep'
+dir = 'RandomSeed'
 to_compare = ['CTDL', 'DQN']
 
 data_frames, labels = ParseIntoDataframes(dir, to_compare)

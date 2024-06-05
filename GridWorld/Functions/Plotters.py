@@ -1,5 +1,10 @@
 import numpy as np
+import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.patches as patches
+import matplotlib.colors as colors
+from matplotlib.gridspec import GridSpec
 
 
 def PlotComparisons(var, data_frames, labels):
@@ -13,34 +18,52 @@ def PlotComparisons(var, data_frames, labels):
 
     figs = []
     axes = []
-    for i in range(num_plots):
-        f, a = plt.subplots(4, figsize=(3, 6))
+    colors = plt.get_cmap('plasma', len(data_frames)).colors.tolist()
 
+    for i in range(num_plots):
+        f = plt.figure(figsize=(6, 8))
+        gs = GridSpec(3, 2, figure=f)
+        a = [f.add_subplot(gs[0, :]),
+             f.add_subplot(gs[1, 0]),
+             f.add_subplot(gs[2, 0]),
+             f.add_subplot(gs[1, 1]),
+             f.add_subplot(gs[2, 1])]
+
+        a[1].set_title('Individual')
+        a[3].set_title('Cumulative')
         a[0].axis('off')
-        a[3].set_xlabel('Episode')
+        a[2].set_xlabel('Episode')
+        a[4].set_xlabel('Episode')
         a[1].set_ylabel('Episode Length')
         a[2].set_ylabel('Reward')
-        a[3].set_ylabel('Ideal Episodes')
+        # a[3].set_ylabel('Ideal Episodes')
         a[1].set_xticks([])
-        a[2].set_xticks([])
+        a[3].set_xticks([])
+        a[3].set_yticks([])
+        a[4].set_yticks([])
+        # a[2].set_xticks([])
 
-        a[3].spines['top'].set_visible(False)
-        a[3].spines['right'].set_visible(False)
+        # a[3].spines['top'].set_visible(False)
+        # a[3].spines['right'].set_visible(False)
         a[1].spines['top'].set_visible(False)
         a[1].spines['right'].set_visible(False)
         a[1].spines['bottom'].set_visible(False)
         a[2].spines['top'].set_visible(False)
         a[2].spines['right'].set_visible(False)
-        a[2].spines['bottom'].set_visible(False)
+        a[3].spines['right'].set_visible(False)
+        a[3].spines['left'].set_visible(False)
+        a[3].spines['top'].set_visible(False)
+        a[3].spines['bottom'].set_visible(False)
+        a[4].spines['right'].set_visible(False)
+        a[4].spines['left'].set_visible(False)
+        a[4].spines['top'].set_visible(False)
+        # a[2].spines['bottom'].set_visible(False)
 
         a[1].ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
         a[2].ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
 
         figs.append(f)
         axes.append(a)
-
-    colors = ['b', 'r', 'g', 'k', 'c', 'm']
-
 
     for df, label, color in zip(data_frames, labels, colors):
 
@@ -52,12 +75,12 @@ def PlotComparisons(var, data_frames, labels):
 
             p = np.where(vals == v)[0][0]
 
-            axes[p][0].set_title(var + ': ' + str(v))
+            # axes[p][0].set_title(var + ': ' + str(v))
             axes[p][0].imshow(maze)
 
-            length_results[p].append(np.cumsum(lengths))
-            reward_results[p].append(np.cumsum(rewards))
-            ideal_results[p].append(np.cumsum(np.array(rewards) == 1))
+            length_results[p].append(lengths)#np.cumsum(lengths))
+            reward_results[p].append(rewards)#(np.cumsum(rewards))
+            ideal_results[p].append(np.array(rewards) > np.array(lengths) * -0.05)
 
 
         for p in range(num_plots):
@@ -68,29 +91,45 @@ def PlotComparisons(var, data_frames, labels):
                 x = np.arange(y.shape[0])
                 error = np.std(length_results[p], axis=0)
 
-                axes[p][1].plot(x, y, color=color)
+                axes[p][1].plot(x, y, color=color, alpha=.75)
                 axes[p][1].fill_between(x, y-error, y+error, color=color, alpha=.25)
+
+                y = np.mean(np.cumsum(length_results[p], axis=1), axis=0)
+                x = np.arange(y.shape[0])
+                error = np.std(np.cumsum(length_results[p], axis=1), axis=0)
+
+                axes[p][3].plot(x, y, color=color, alpha=.75)
+                axes[p][3].fill_between(x, y - error, y + error, color=color, alpha=.25)
+
 
                 y = np.mean(reward_results[p], axis=0)
                 x = np.arange(y.shape[0])
                 error = np.std(reward_results[p], axis=0)
 
-                axes[p][2].plot(x, y, color=color)
+                axes[p][2].plot(x, y, label=label, color=color, alpha=.75)
                 axes[p][2].fill_between(x, y - error, y + error, color=color, alpha=.25)
 
-                y = np.mean(ideal_results[p], axis=0)
+                y = np.mean(np.cumsum(reward_results[p], axis=1), axis=0)
                 x = np.arange(y.shape[0])
-                error = np.std(ideal_results[p], axis=0)
+                error = np.std(np.cumsum(reward_results[p], axis=1), axis=0)
 
-                axes[p][3].plot(x, y, label=label, color=color)
-                axes[p][3].fill_between(x, y - error, y + error, color=color, alpha=.25)
+                axes[p][4].plot(x, y, label=label, color=color, alpha=.75)
+                axes[p][4].fill_between(x, y - error, y + error, color=color, alpha=.25)
 
-    for a in axes:
-        for s in a.ravel():
-            s.legend()
+                # y = np.mean(ideal_results[p], axis=0)
+                # x = np.arange(y.shape[0])
+                # error = np.std(ideal_results[p], axis=0)
+
+                # axes[p][3].plot(x, y, label=label, color=color)
+                # axes[p][3].fill_between(x, y - error, y + error, color=color, alpha=.25)
+
+    for f, a in zip(figs, axes):
+        a[2].legend(bbox_to_anchor=(.9, 0), loc="lower right",
+                             bbox_transform=f.transFigure, ncol=3, fancybox=True,
+                             fontsize='small')
 
     for i, f in enumerate(figs):
-        f.tight_layout()
+        # f.tight_layout()
         f.savefig('Plots/ComparisonPlot' + str(i) + '.pdf')
         plt.close(f)
 
@@ -314,5 +353,190 @@ def PlotRevaluationComparisons(data_frames, labels):
     f.tight_layout()
     f.savefig('Plots/RevaluationComparisonPlot.pdf')
     plt.close(f)
+
+    return
+
+
+def PlotAllExplanations(maze, memories_list, actions_list, weights_list, training_rewards, training_lengths,
+                        test_rewards, save_name, best_agent):
+
+    rows = 5
+    cols = 3
+
+    fig = plt.figure(figsize=(8, 10))
+    gs = GridSpec(rows, cols, figure=fig)
+    colours = sns.color_palette('colorblind', len(training_rewards))
+
+    axes = []
+    for row in range(rows-1):
+        for col in range(cols):
+            axes.append(fig.add_subplot(gs[row, col]))
+
+    for i, ax in enumerate(axes):
+        if i == best_agent:
+            color = (1,0,0)
+        else:
+            color = (.5,.5,.5)
+        ax.set_title('Agent: ' + str(i + 1))
+        ax.tick_params(color=color, labelcolor=color)
+        for spine in ax.spines.values():
+            spine.set_edgecolor(color)
+            spine.set_linewidth(5)
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    titles = ['Training Reward', 'Training Episode Length', 'Test Reward']
+    x_labels = ['Episode', 'Episode', 'Agent']
+    x_ticks = [np.arange(0, 1000, 250), np.arange(0, 1000, 250), np.arange(1, 13)]
+    for i, title in enumerate(titles):
+        axes.append(fig.add_subplot(gs[int(rows-1), i]))
+        axes[-1].spines['top'].set_visible(False)
+        axes[-1].spines['right'].set_visible(False)
+        axes[-1].ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
+        axes[-1].ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
+        axes[-1].set_yscale('symlog')
+        axes[-1].set_title(title)
+        axes[-1].set_xlabel(x_labels[i])
+        axes[-1].set_xticks(x_ticks[i])
+
+    axes[-1].tick_params(axis='x', labelsize=8)
+
+    for ax, memories, actions, weights in zip(axes, memories_list, actions_list, weights_list):
+        ax.imshow(maze)
+        cmap = plt.cm.get_cmap('hot')
+        norm = colors.Normalize(vmin=0, vmax=1)
+
+        for memory, action, weight in zip(memories, actions, weights):
+            ax.plot(memory[1], memory[0], marker='*', color=cmap(norm(weight)))
+            ax.text(memory[1], memory[0] + .5, action, ha='center')
+
+    for i, (training_reward, training_length, test_reward) in enumerate(zip(training_rewards,
+                                                                            training_lengths,
+                                                                            test_rewards)):
+        if i == best_agent:
+            color = (1,0,0)
+        else:
+            color = (.5,.5,.5)
+        training_reward = np.concatenate([[0], training_reward])
+        training_reward = np.mean(np.reshape(training_reward, (10, 100)), axis=-1)
+        axes[-3].plot(np.arange(training_reward.shape[0]) * 100, training_reward, color=color)
+        training_length = np.concatenate([[0], training_length])
+        training_length = np.mean(np.reshape(training_length, (10, 100)), axis=-1)
+        axes[-2].plot(np.arange(training_length.shape[0]) * 100, training_length, color=color)
+        axes[-1].bar(i + 1, test_reward, color=color)
+
+    plt.tight_layout()
+    fig.savefig(save_name)
+    plt.close()
+
+    return
+
+
+
+def PlotExplanation(maze, memories, actions, weights, save_name):
+
+    fig, ax = plt.subplots(1)
+    ax.imshow(maze)
+    cmap = plt.cm.get_cmap('hot')
+    norm = colors.Normalize(vmin=0, vmax=1)
+
+    for memory, action, weight in zip(memories, actions, weights):
+        ax.plot(memory[1], memory[0], marker='*', color=cmap(norm(weight)))
+        ax.text(memory[1], memory[0] + .5, action, ha='center')
+
+    fig.savefig(save_name)
+    plt.close()
+
+    return
+
+
+def PlotExplanationResults(var, data_frames, best_agent):
+
+    f, a = plt.subplots(2, figsize=(3, 4))
+
+    a[1].set_xlabel('Episode')
+
+    # a[2].set_xlabel('Episode')
+    a[0].set_ylabel('Episode Length')
+    a[1].set_ylabel('Reward')
+    # a[2].set_ylabel('Ideal Episodes')
+    a[0].set_xticks([])
+    # a[1].set_xticks([])
+
+    # a[2].spines['top'].set_visible(False)
+    # a[2].spines['right'].set_visible(False)
+    a[0].spines['top'].set_visible(False)
+    a[0].spines['right'].set_visible(False)
+    a[0].spines['bottom'].set_visible(False)
+    a[1].spines['top'].set_visible(False)
+    a[1].spines['right'].set_visible(False)
+    # a[1].spines['bottom'].set_visible(False)
+
+    a[0].ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
+    a[1].ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
+
+    colors = ['b', 'r', 'g', 'k', 'c', 'm']
+
+    for df, color in zip(data_frames, colors):
+
+        length_results = []
+        reward_results = []
+        ideal_results = []
+
+        for rewards, lengths, maze in zip(df['rewards'], df['lengths'], df['maze']):
+
+            length_results.append(np.cumsum(lengths))
+            reward_results.append(np.cumsum(rewards))
+            ideal_results.append(np.cumsum(np.array(rewards) == 1))
+
+        y = np.mean(length_results, axis=0)
+        x = np.arange(y.shape[0])
+        error = np.std(length_results, axis=0)
+
+        a[0].plot(x, y, color=color)
+        a[0].fill_between(x, y-error, y+error, color=color, alpha=.25)
+        a[0].plot(x, np.array(length_results)[best_agent, :], color=color, linestyle=':')
+
+        y = np.mean(reward_results, axis=0)
+        x = np.arange(y.shape[0])
+        error = np.std(reward_results, axis=0)
+
+        a[1].plot(x, y, color=color)
+        a[1].fill_between(x, y - error, y + error, color=color, alpha=.25)
+        a[1].plot(x, np.array(reward_results)[best_agent, :], color=color, linestyle=':')
+
+        # y = np.mean(ideal_results, axis=0)
+        # x = np.arange(y.shape[0])
+        # error = np.std(ideal_results, axis=0)
+        #
+        # a[2].plot(x, y, color=color)
+        # a[2].fill_between(x, y - error, y + error, color=color, alpha=.25)
+        # a[2].plot(x, np.array(ideal_results)[best_agent, :], color=color, linestyle=':')
+
+    f.tight_layout()
+    f.savefig('Plots/Explanation_Results_' + str(var) + '.pdf')
+    plt.close(f)
+
+    return
+
+def PlotExplanationHeatMap(name, maze, weights, memories, actions):
+
+    heat_map = np.zeros(maze.shape)
+
+    for w, m, a in zip(weights, memories, actions):
+
+        w = np.array(w)
+        m = np.array(m)
+        a = np.array(a)
+
+        binned_memories = np.rint(m)
+        heat_map[binned_memories[:, 0].astype(int), binned_memories[:, 1].astype(int)] += 1
+
+    plt.figure()
+    plt.imshow(maze, alpha=.5)
+    plt.imshow(heat_map, cmap='hot')
+    plt.colorbar()
+    plt.savefig('Plots/Explanation_Heat_Map' + str(name) + '.pdf')
+    plt.close()
 
     return

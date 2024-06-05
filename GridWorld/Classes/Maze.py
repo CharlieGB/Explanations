@@ -115,6 +115,8 @@ class Maze(object):
             self.step = 0
             self.Reset()
 
+        self.reward += -.05
+
         return self.reward, self.state, bTrial_over
 
     def UpdateState(self, action):

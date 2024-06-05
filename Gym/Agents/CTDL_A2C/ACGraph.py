@@ -19,6 +19,8 @@ class ACGraph(object):
             """ Construction phase """
             self.init_xavier = tf.contrib.layers.xavier_initializer()
 
+            self.beta = tf.placeholder(tf.float32, shape=(None), name="beta")
+
             self.X = tf.placeholder(tf.float32, shape=(None, self.input_dim), name="X")
 
             self.action_y = tf.placeholder(tf.float32, shape=(None, self.action_dim), name="action_y")
@@ -39,9 +41,14 @@ class ACGraph(object):
             self.action_sample = tf.squeeze(self.dist.sample(1), axis=0)
             self.action = tf.clip_by_value(self.action_sample, self.action_mins[0], self.action_maxs[0])
 
+            self.entropy = self.dist.entropy() # -tf.reduce_sum(self.dist * tf.log(self.dist), 1, name="entropy")
+
+
             # Loss functions
             with tf.name_scope("loss"):
-                self.policy_loss = (-tf.log(self.dist.prob(self.action_y) + 1e-5) * self.delta)# - self.entropy
+                #self.policy_loss = (-tf.log(self.dist.prob(self.action_y) + 1e-5) * self.delta) - (self.entropy * self.beta)
+
+                self.policy_loss = (-tf.log(self.dist.prob(self.action_y) + 1e-5) * self.delta)
                 self.value_loss = tf.reduce_mean(tf.square(self.value_y - self.state_value), axis=0, name='value_loss')
 
             # Minimizer
@@ -75,11 +82,12 @@ class ACGraph(object):
 
         return value
 
-    def GradientDescentStep(self, X_batch, action_batch, value_batch, delta_batch):
+    def GradientDescentStep(self, X_batch, action_batch, value_batch, delta_batch, beta):
 
         self.sess.run(self.training_op_policy, feed_dict={self.X: X_batch,
                                                           self.action_y: action_batch,
-                                                          self.delta: np.squeeze(delta_batch)})
+                                                          self.delta: np.squeeze(delta_batch),
+                                                          self.beta: beta})
 
         self.sess.run(self.training_op_value, feed_dict={self.X: X_batch, self.value_y: np.squeeze(value_batch)})
 

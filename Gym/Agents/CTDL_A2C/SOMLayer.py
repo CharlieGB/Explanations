@@ -26,7 +26,8 @@ class SOMLayer():
         for u in range(self.num_units):
 
             self.units['xy'].append([x, y])
-            self.units['w'].append(np.random.randn(self.num_weights))#np.random.randn(self.num_weights))
+            #self.units['w'].append(np.array([((1/self.size) / 2) + (x / self.size), ((1/self.size) / 2) + y / self.size]))#np.random.rand(self.num_weights))#np.random.randn(self.num_weights))
+            self.units['w'].append(np.random.randn(self.num_weights))
 
             x += 1
 
@@ -39,14 +40,16 @@ class SOMLayer():
 
         return
 
-    def Update(self, state, best_unit, reward_value):
+    def Update(self, state, best_unit, reward_value, update_mask):
 
         diffs = self.units['xy'] - self.units['xy'][best_unit, :]
         location_distances = np.sqrt(np.sum(np.square(diffs), axis=-1))
         neighbourhood_values = np.exp(-np.square(location_distances) / (2.0 * (self.sigma_const + (reward_value * self.sigma))))
 
-        self.units['w'] += (reward_value * self.learning_rate) * \
-                           np.expand_dims(neighbourhood_values, axis=-1) * (state - self.units['w'])
+        self.units['w'] += np.float(reward_value * self.learning_rate) * \
+                           np.expand_dims(neighbourhood_values, axis=-1).astype(np.float) * \
+                           (state - self.units['w']).astype(np.float) * \
+                           np.tile(np.expand_dims(update_mask, axis=1), (1, 2))
 
         return
 

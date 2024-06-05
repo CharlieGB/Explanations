@@ -1,9 +1,9 @@
 from Gym.Functions.Parsers import ParseIntoDataframes
 from Gym.Functions.Plotters import PlotComparisons
 
-dir = 'ContinuousMountainCar'
-to_compare = ['CTDL_A2C', 'A2C']
 
-data_frames, labels = ParseIntoDataframes(dir, to_compare)
+dirs_to_compare = ['Explanation', 'NoExplanation']
 
-PlotComparisons(data_frames, labels)
+data_frames = ParseIntoDataframes(dirs_to_compare)
+
+PlotComparisons(data_frames, dirs_to_compare, num_trials_list=[50, 1000])

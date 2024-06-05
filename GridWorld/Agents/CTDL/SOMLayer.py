@@ -13,7 +13,7 @@ class SOMLayer():
         self.sigma = sigma
         self.sigma_const = sigma_const
 
-        self.units = {'xy': [], 'w': []}
+        self.units = {'xy': [], 'w': [], 'etas': np.zeros(self.num_units), 'errors': np.zeros(self.num_units)}
         self.ConstructMap(maze_dim)
 
         return
@@ -39,15 +39,29 @@ class SOMLayer():
 
         return
 
-    def Update(self, state, best_unit, reward_value):
+    def Update(self, state, unit, delta, update_mask):
 
-        diffs = self.units['xy'] - self.units['xy'][best_unit, :]
+        # self.units['w'][unit, :] = state
+        # self.units['errors'][unit] = error
+
+
+        diffs = self.units['xy'] - self.units['xy'][unit, :]
         location_distances = np.sqrt(np.sum(np.square(diffs), axis=-1))
-        neighbourhood_values = np.exp(-np.square(location_distances) / (
-                2.0 * (self.sigma_const + (reward_value * self.sigma))))
 
-        self.units['w'] += (reward_value * self.learning_rate) * \
-                           np.expand_dims(neighbourhood_values, axis=-1) * (state - self.units['w'])
+        # sigma = np.clip(reward_value, 0, .01)
+        # neighbourhood_values = np.exp(
+        #     -np.square(location_distances) / (2.0 * (self.sigma_const + sigma)))
+
+        neighbourhood_values = np.exp(-np.square(location_distances) / (
+                2.0 * (self.sigma_const + (delta * self.sigma))))
+
+        # lr = np.clip(reward_value, 0, .01)
+        # self.units['w'] += lr * np.expand_dims(neighbourhood_values, axis=-1) * (state - self.units['w'])
+
+        self.units['w'] += np.squeeze((delta * self.learning_rate) * \
+                           np.expand_dims(neighbourhood_values, axis=-1) * (
+                                   state - self.units['w'])) * \
+                           np.tile(np.expand_dims(update_mask, axis=1), (1, 2))
 
         return
 

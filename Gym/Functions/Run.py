@@ -1,5 +1,6 @@
 import os
 import gym
+import numpy as np
 
 from datetime import datetime
 from Utilities import RecordSettings
@@ -50,33 +51,64 @@ def Run(env_params, agent_params):
 
 def RunEnv(agent, env, env_params):
 
-    trial = 0
+    trial = 1
     reward = 0
     bTrial_over = False
     state = env.reset()
     ti = 0
 
     print('Starting Trial ' + str(trial) + '...')
-    while trial < env_params['num_trials']:
+    agent.PlotSOMResults(trial, env_params['env'])
+    while trial <= env_params['num_trials']:
 
-        if (ti % 50 == 0):
-            print('Time Step: ' + str(ti) + ' Agent Epsilon: ' + str(agent.epsilon))
         ti += 1
 
-        action = agent.Update(reward, state, bTrial_over)
+        action = agent.Update(reward, state, bTrial_over, False)
         state, reward, bTrial_over, info = env.step(action)
+        np.clip(reward, -1, 1)
+        #print(reward)
 
         if(ti % env_params['max_steps'] == 0):
             bTrial_over = True
 
         if (bTrial_over):
-            trial += 1
-            ti = 0
-            state = env.reset()
-            print('Starting Trial ' + str(trial) + '...')
 
+            if(trial % env_params['explanation_freq'] == 0):
+
+                # Save reward for resuming training
+                final_reward = np.copy(reward)
+
+                for test_trial in range(env_params['num_test_trials']):
+                    # Freeze learning and do a test run
+                    print('Starting Test Trial ' + str(test_trial) + '...')
+
+                    reward = 0
+                    state = env.reset()
+                    bTrial_over = False
+
+                    while not bTrial_over:
+                        action = agent.Update(reward, state, bTrial_over, True)
+                        state, reward, bTrial_over, info = env.step(action)
+
+                    agent.RecordTestResults(trial, test_trial)
+
+                agent.SaveTestResults()
+
+                reward = final_reward
+                bTrial_over = True
+
+            ti = 0
+            trial += 1
+            state = env.reset()
+            print('\nStarting Trial ' + str(trial) + '...')
+
+            if (trial % env_params['print_freq'] == 0):
+                agent.PlotSOMResults(trial, env_params['env'])
+
+    agent.PlotResults(env_params['env'])
     env.close()
-    agent.PlotResults()
+
+    return
 
 
 def CreateResultsDirectory():

@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
+import matplotlib.patches as patches
 
 from GridWorld.Agents.DQN.Memory import Memory
 from GridWorld.Agents.DQN.QTargetGraph import QTargetGraph
@@ -41,27 +42,46 @@ class Agent(object):
         self.prev_action = None
         self.bStart_learning = False
 
+        self.ti = 0
+
         return
 
-    def Update(self, reward, state, bTrial_over):
+    def Update(self, reward, state, bTrial_over, bTest=False, maze=None):
 
         state = np.expand_dims(state, axis=0)
 
-        if (bTrial_over and self.epsilon < self.final_epsilon):
-            self.epsilon += self.epsilon_increment
+        if (bTest):
+            action = self.SelectAction(state)
 
-        self.RecordResults(bTrial_over, reward)
+            fig, ax = plt.subplots(1)
+            ax.imshow(maze, alpha=0.5)
+            rect = patches.Rectangle((state[0, 1] - .5, state[0, 0] - .5), 1, 1, facecolor='r')
+            ax.add_patch(rect)
+            fig.savefig(self.directory + '/Test' + str(self.ti))
+            plt.close()
+            self.ti += 1
 
-        if(self.bStart_learning):
-            self.memory.RecordExperience(self.prev_state, state, self.prev_action, reward, bTrial_over)
-            self.UpdateQGraph()
+        else:
 
-        action = self.SelectAction(state)
+            if (bTrial_over and self.epsilon < self.final_epsilon):
+                self.epsilon += self.epsilon_increment
 
-        if (not self.bStart_learning):
-            self.bStart_learning = True
+            self.RecordResults(bTrial_over, reward)
+
+            if(self.bStart_learning):
+                self.memory.RecordExperience(self.prev_state, state, self.prev_action, reward, bTrial_over)
+                self.UpdateQGraph()
+
+            action = self.SelectAction(state)
+
+            if (not self.bStart_learning):
+                self.bStart_learning = True
 
         return action
+
+    def SaveExplanation(self, maze):
+
+        return
 
     def RecordResults(self, bTrial_over, reward):
 

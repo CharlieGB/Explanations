@@ -1,4 +1,5 @@
 import os
+import numpy as np
 from datetime import datetime
 
 from Utilities import RecordSettings
@@ -9,7 +10,6 @@ def Run(maze_params, agent_params):
 
     results_dir = CreateResultsDirectory()
     maze_params['num_hazards'] = int((maze_params['width'] * maze_params['height']) / 5)
-    RecordSettings(results_dir, maze_params, agent_params)
 
     if(agent_params['agent_type'] == AgentType.CTDL):
         from GridWorld.Agents.CTDL.Agent import Agent
@@ -19,6 +19,7 @@ def Run(maze_params, agent_params):
     agent = Agent(results_dir, maze_params, agent_params)
     maze = Maze(results_dir, maze_params)
 
+    RecordSettings(results_dir, maze_params, agent_params)
     RunMaze(agent, maze, maze_params)
 
     return
@@ -53,29 +54,56 @@ def RunSequentially(maze_params, agent_params, mazes):
 
 
 def RunMaze(agent, maze, maze_params):
-    trial = 0
+
+    trial = 1
     reward = 0
     state = maze.start
     bTrial_over = False
     ti = 0
-    print('Starting Trial ' + str(trial) + '...')
-    while trial < maze_params['num_trials']:
+    agent.PlotValueFunction()
 
-        if (ti % 50 == 0):
-            print('Time Step: ' + str(ti) + ' Agent Epsilon: ' + str(agent.epsilon))
+    print('Starting Trial ' + str(trial) + '...')
+    while trial <= maze_params['num_trials']:
+
         ti += 1
 
         action = agent.Update(reward, state, bTrial_over)
         reward, state, bTrial_over = maze.Update(action)
 
         if (bTrial_over):
+
+            if (trial % maze_params['explanation_freq'] == 0):
+
+                # Save reward for resuming training
+                final_reward = np.copy(reward)
+
+                for test_trial in range(maze_params['num_test_trials']):
+                    # Freeze learning and do a test run
+                    print('Starting Test Trial ' + str(test_trial) + '...')
+
+                    reward = 0
+                    bTrial_over = False
+
+                    while not bTrial_over:
+                        action = agent.Update(reward, state, bTrial_over, True)
+                        reward, state, bTrial_over = maze.Update(action)
+
+                    agent.RecordTestResults(maze.GetMaze(), trial, test_trial)
+
+                agent.SaveTestResults()
+
+                reward = final_reward
+                bTrial_over = True
+
             trial += 1
             ti = 0
-            print('Starting Trial ' + str(trial) + '...')
+            print('\nStarting Trial ' + str(trial) + '...')
 
-            if (trial % 10 == 0):
+            if(trial % maze_params['print_freq'] == 0):
                 agent.PlotValueFunction()
+
     agent.PlotResults()
+
     return
 
 
