@@ -2,6 +2,10 @@ import os
 import numpy as np
 import shutil
 
+def InitialiseGPU():
+    os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"  # No GPU
+
+
 def RecordSettings(directory, maze_params, agent_params):
     file = open(directory + 'Settings.txt', 'w')
 
