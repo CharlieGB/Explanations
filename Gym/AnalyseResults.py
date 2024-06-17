@@ -2,7 +2,7 @@ from Gym.Functions.Parsers import ParseIntoDataframes
 from Gym.Functions.Plotters import PlotComparisons
 
 
-dirs_to_compare = ['Explanation', 'NoExplanation']
+dirs_to_compare = ['A2CExplanation', 'A2C']
 
 data_frames = ParseIntoDataframes(dirs_to_compare)
 

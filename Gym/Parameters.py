@@ -10,7 +10,7 @@ env_params = {'env': EnvType.MountainCarContinuous,
               }
 
 agent_params = {'agent_type': AgentType.CTDL_A2C,
-                'bSOM': True,
+                'bSOM': False,
                 'bLoad_Exp': True,
                 'bShuffle_Exp': False,
                 'exp_length': 20,

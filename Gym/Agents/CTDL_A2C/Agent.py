@@ -27,9 +27,13 @@ class Agent(object):
 
         self.bLoad_exp = agent_params['bLoad_Exp']
         self.exp_thresh = agent_params['exp_thresh']
+        self.bShuffle_Exp = agent_params['bShuffle_Exp']
 
         if (self.bSOM):
             self.CreateSOM(agent_params)
+
+        if (self.bLoad_exp):
+            self.LoadExplanation(agent_params)
 
         self.weighting_decay = agent_params['w_decay']
         self.TD_decay = agent_params['TD_decay']
@@ -77,7 +81,6 @@ class Agent(object):
         return
 
     def CreateSOM(self, agent_params):
-
         self.SOM = DeepSOM(self.directory, self.input_dim, agent_params['SOM_size'],
                            agent_params['SOM_alpha'], agent_params['SOM_sigma'],
                            agent_params['SOM_sigma_const'])
@@ -85,18 +88,20 @@ class Agent(object):
         self.VValues = np.zeros((agent_params['SOM_size'] * agent_params['SOM_size']))
         self.update_mask = np.ones((self.SOM.SOM_layer.num_units))
 
-        if(agent_params['bLoad_Exp']):
-            explanation_dir = ('/').join(self.directory.split('/')[:-2]) + '/ChosenExplanations'
-            num_explanations = len(os.listdir(explanation_dir))
-            chosen_explanation = np.random.randint(num_explanations)
-            agent_params['chosen_explanation'] = chosen_explanation
 
-            with open(explanation_dir + '/Explanation_' +
-                      str(chosen_explanation) + '.pkl', 'rb') as handle:
-                explanations = pickle.load(handle)
+    def LoadExplanation(self, agent_params):
+        explanation_dir = ('/').join(self.directory.split('/')[:-2]) + '/ChosenExplanations'
+        num_explanations = len(os.listdir(explanation_dir))
+        chosen_explanation = np.random.randint(num_explanations)
+        agent_params['chosen_explanation'] = chosen_explanation
 
-            actions, memories, values, weights = ExtractExplanation(explanations, self.exp_thresh)
+        with open(explanation_dir + '/Explanation_' +
+                  str(chosen_explanation) + '.pkl', 'rb') as handle:
+            explanations = pickle.load(handle)
 
+        actions, memories, values, weights = ExtractExplanation(explanations, self.exp_thresh, self.bShuffle_Exp)
+
+        if agent_params["bSOM"]:
             chosen_units = np.random.choice(self.SOM.SOM_layer.num_units, actions.shape[0], replace=False)
 
             for i, unit in enumerate(chosen_units.tolist()):
@@ -104,22 +109,15 @@ class Agent(object):
                 self.VValues[unit] = values[i]
 
             self.chosen_units = chosen_units
-            self.explanation_actions = actions
             self.update_mask[self.chosen_units] = 0
 
-        return
+        self.explanation_actions = actions
+        self.explanation_memories = memories
+        self.explanation_values = values
+        self.explanation_weights = weights
 
     def ScaleState(self, state):
         scaled = self.scaler.transform([state])
-
-        # min_position = -1.2
-        # max_position = 0.6
-        # max_speed = 0.07
-        # min_speed = -0.07
-        #
-        # scaled = (state - np.array([min_position, min_speed])) / (np.array([max_position, max_speed]) - np.array([min_position, min_speed]))
-        # scaled = np.expand_dims(scaled, axis=0)
-
         return scaled
 
     def Update(self, reward, state, bTrial_over, bTest):
@@ -181,7 +179,7 @@ class Agent(object):
         self.test_results.append(results)
 
         states = self.test_states
-        actions, memories, values, weights = ExtractExplanation(results, self.exp_thresh)
+        actions, memories, values, weights = ExtractExplanation(results, self.exp_thresh, self.bShuffle_Exp)
         PlotExplanation(states, memories, actions, weights,
                         self.directory + '/LearningTrial_' + str(trial) + '_TestTrial_' + str(test_trial), self.scaler)
 
@@ -280,7 +278,20 @@ class Agent(object):
         if(self.bSOM):
             state_value = self.GetVValues(state, critic_value)
         else:
-            state_value = critic_value
+            if self.bLoad_exp:
+                diff = np.sum(np.square(self.explanation_memories - state), axis=-1)
+                w = np.exp(-diff / self.weighting_decay)
+
+                max_w = np.amax(w)
+                max_ind = np.argmax(w)
+
+                if max_w > self.exp_thresh:
+                    state_value = np.array((max_w * self.explanation_values[max_ind]) + ((1 - max_w) * critic_value))
+                    # state_value = np.array([self.explanation_values[max_ind]])
+                else:
+                    state_value = critic_value
+            else:
+                state_value = critic_value
 
         if (bTrial_over):
             target = reward
@@ -293,14 +304,26 @@ class Agent(object):
     def SelectAction(self, state):
 
         if(self.bLoad_exp):
-            best_unit = self.SOM.GetOutput(state)
-            w = self.GetWeighting(best_unit, state)
+            if self.bSOM:
+                best_unit = self.SOM.GetOutput(state)
+                w = self.GetWeighting(best_unit, state)
 
-            if(w > self.exp_thresh and best_unit in self.chosen_units.tolist()):
-                ind = np.where(self.chosen_units == best_unit)[0][0]
-                action = np.array([[self.explanation_actions[ind]]])
+                if(w > self.exp_thresh and best_unit in self.chosen_units.tolist()):
+                    ind = np.where(self.chosen_units == best_unit)[0][0]
+                    action = np.array([[self.explanation_actions[ind]]])
+                else:
+                    action = self.ac_graph.GetAction(state)
             else:
-                action = self.ac_graph.GetAction(state)
+                diff = np.sum(np.square(self.explanation_memories - state), axis=-1)
+                w = np.exp(-diff / self.weighting_decay)
+
+                max_w = np.amax(w)
+                max_ind = np.argmax(w)
+
+                if max_w > self.exp_thresh:
+                    action = np.array([[self.explanation_actions[max_ind]]])
+                else:
+                    action = self.ac_graph.GetAction(state)
 
         else:
             action = self.ac_graph.GetAction(state)

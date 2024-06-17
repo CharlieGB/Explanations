@@ -7,7 +7,9 @@ import matplotlib.colors as colors
 from matplotlib.gridspec import GridSpec
 
 
-def PlotComparisons(var, data_frames, labels):
+def PlotComparisons(var, data_frames, labels, colors, linestyles, suffix):
+
+    binsize = 10
 
     vals = np.array([])
     for df in data_frames:
@@ -18,54 +20,35 @@ def PlotComparisons(var, data_frames, labels):
 
     figs = []
     axes = []
-    colors = plt.get_cmap('plasma', len(data_frames)).colors.tolist()
 
     for i in range(num_plots):
-        f = plt.figure(figsize=(6, 8))
-        gs = GridSpec(3, 2, figure=f)
-        a = [f.add_subplot(gs[0, :]),
-             f.add_subplot(gs[1, 0]),
-             f.add_subplot(gs[2, 0]),
-             f.add_subplot(gs[1, 1]),
-             f.add_subplot(gs[2, 1])]
+        f, a = plt.subplots(1, 3, figsize=(12, 4))
 
-        a[1].set_title('Individual')
-        a[3].set_title('Cumulative')
         a[0].axis('off')
         a[2].set_xlabel('Episode')
-        a[4].set_xlabel('Episode')
-        a[1].set_ylabel('Episode Length')
-        a[2].set_ylabel('Reward')
-        # a[3].set_ylabel('Ideal Episodes')
-        a[1].set_xticks([])
-        a[3].set_xticks([])
-        a[3].set_yticks([])
-        a[4].set_yticks([])
-        # a[2].set_xticks([])
+        a[1].set_xlabel('Episode')
+        a[1].set_ylabel('reward')
+        a[2].set_ylabel('steps')
+        a[2].set_title('Episode Length')
+        a[1].set_title('Reward')
+        a[1].set_xticks(np.arange(0, 1001, 250))
+        a[2].set_xticks(np.arange(0, 1001, 250))
 
-        # a[3].spines['top'].set_visible(False)
-        # a[3].spines['right'].set_visible(False)
         a[1].spines['top'].set_visible(False)
         a[1].spines['right'].set_visible(False)
-        a[1].spines['bottom'].set_visible(False)
         a[2].spines['top'].set_visible(False)
         a[2].spines['right'].set_visible(False)
-        a[3].spines['right'].set_visible(False)
-        a[3].spines['left'].set_visible(False)
-        a[3].spines['top'].set_visible(False)
-        a[3].spines['bottom'].set_visible(False)
-        a[4].spines['right'].set_visible(False)
-        a[4].spines['left'].set_visible(False)
-        a[4].spines['top'].set_visible(False)
-        # a[2].spines['bottom'].set_visible(False)
 
         a[1].ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
         a[2].ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
 
+        a[1].set_yscale('symlog')
+        a[2].set_yscale('symlog')
+
         figs.append(f)
         axes.append(a)
 
-    for df, label, color in zip(data_frames, labels, colors):
+    for df, label, color, linestyle in zip(data_frames, labels, colors, linestyles):
 
         length_results = [[] for i in range(num_plots)]
         reward_results = [[] for i in range(num_plots)]
@@ -87,50 +70,40 @@ def PlotComparisons(var, data_frames, labels):
 
             if(length_results[p]):
 
-                y = np.mean(length_results[p], axis=0)
-                x = np.arange(y.shape[0])
-                error = np.std(length_results[p], axis=0)
+                l = np.array(length_results[p])
+                l = np.concatenate([np.zeros((l.shape[0],1)), l], axis=1)
+                l = np.reshape(l, (l.shape[0], int(1000/binsize), binsize))
+                l = np.mean(l, axis=-1)
 
-                axes[p][1].plot(x, y, color=color, alpha=.75)
-                axes[p][1].fill_between(x, y-error, y+error, color=color, alpha=.25)
+                y = np.mean(l, axis=0)
+                x = np.arange(binsize, 1001, binsize)
+                error = np.std(l, axis=0)
 
-                y = np.mean(np.cumsum(length_results[p], axis=1), axis=0)
-                x = np.arange(y.shape[0])
-                error = np.std(np.cumsum(length_results[p], axis=1), axis=0)
+                axes[p][2].plot(x, y, label=label, color=color, linestyle=linestyle, alpha=1.0)
+                # axes[p][2].fill_between(x, y-error, y+error, color=color, alpha=.25)
 
-                axes[p][3].plot(x, y, color=color, alpha=.75)
-                axes[p][3].fill_between(x, y - error, y + error, color=color, alpha=.25)
+                r = np.array(reward_results[p])
+                r = np.concatenate([np.zeros((r.shape[0], 1)), r], axis=1)
+                r = np.reshape(r, (r.shape[0], int(1000/binsize), binsize))
+                r = np.mean(r, axis=-1)
 
+                y = np.mean(r, axis=0)
+                x = np.arange(binsize, 1001, binsize)
+                error = np.std(r, axis=0)
 
-                y = np.mean(reward_results[p], axis=0)
-                x = np.arange(y.shape[0])
-                error = np.std(reward_results[p], axis=0)
-
-                axes[p][2].plot(x, y, label=label, color=color, alpha=.75)
-                axes[p][2].fill_between(x, y - error, y + error, color=color, alpha=.25)
-
-                y = np.mean(np.cumsum(reward_results[p], axis=1), axis=0)
-                x = np.arange(y.shape[0])
-                error = np.std(np.cumsum(reward_results[p], axis=1), axis=0)
-
-                axes[p][4].plot(x, y, label=label, color=color, alpha=.75)
-                axes[p][4].fill_between(x, y - error, y + error, color=color, alpha=.25)
-
-                # y = np.mean(ideal_results[p], axis=0)
-                # x = np.arange(y.shape[0])
-                # error = np.std(ideal_results[p], axis=0)
-
-                # axes[p][3].plot(x, y, label=label, color=color)
-                # axes[p][3].fill_between(x, y - error, y + error, color=color, alpha=.25)
+                axes[p][1].plot(x, y, color=color, linestyle=linestyle, alpha=1.0)
+                # axes[p][1].fill_between(x, y - error, y + error, color=color, alpha=.25)
 
     for f, a in zip(figs, axes):
-        a[2].legend(bbox_to_anchor=(.9, 0), loc="lower right",
-                             bbox_transform=f.transFigure, ncol=3, fancybox=True,
-                             fontsize='small')
+        # a[2].legend(bbox_to_anchor=(.8, 0), loc="lower right",
+        #                      bbox_transform=f.transFigure, ncol=3, frameon=False,
+        #                      fontsize='small')
+
+        a[2].legend(ncol=1, frameon=False, fontsize='medium')
 
     for i, f in enumerate(figs):
-        # f.tight_layout()
-        f.savefig('Plots/ComparisonPlot' + str(i) + '.pdf')
+        f.tight_layout()
+        f.savefig('Plots/ComparisonPlot' + str(i) + suffix + '.pdf')
         plt.close(f)
 
     return
@@ -360,7 +333,7 @@ def PlotRevaluationComparisons(data_frames, labels):
 def PlotAllExplanations(maze, memories_list, actions_list, weights_list, training_rewards, training_lengths,
                         test_rewards, save_name, best_agent):
 
-    rows = 5
+    rows = 7
     cols = 3
 
     fig = plt.figure(figsize=(8, 10))
@@ -425,7 +398,7 @@ def PlotAllExplanations(maze, memories_list, actions_list, weights_list, trainin
         axes[-2].plot(np.arange(training_length.shape[0]) * 100, training_length, color=color)
         axes[-1].bar(i + 1, test_reward, color=color)
 
-    plt.tight_layout()
+    # plt.tight_layout()
     fig.savefig(save_name)
     plt.close()
 

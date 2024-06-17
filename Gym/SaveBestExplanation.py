@@ -34,7 +34,7 @@ for key, values in df.to_dict().items():
     with open('Results/' + directory_to_save + '/' + key + '.pkl', 'wb') as f:
         pickle.dump(values[best_agent], f, pickle.HIGHEST_PROTOCOL)
 
-    actions, memories, _, weights = ExtractExplanation(values[best_agent], agent_params['exp_thresh'])
+    actions, memories, _, weights = ExtractExplanation(values[best_agent], agent_params['exp_thresh'], False)
 
     states = np.array(values[best_agent]['states'])
     mean = np.array([float(x) for x in means[best_agent].replace('[', '').replace(']\n','').split(' ')])

@@ -8,7 +8,7 @@ maze_params = {'type': MazeType.random,
                'num_trials': 1000,
                'random_seed': 0,
                'max_steps': 1000,
-               'num_repeats': 12,
+               'num_repeats': 20,
                'print_freq': 1000,
                'explanation_freq': 200,
                'num_test_trials': 1

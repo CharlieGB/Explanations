@@ -91,10 +91,7 @@ class Agent(object):
                 explanation_dir = ('/').join(self.directory.split('/')[:-2]) + \
                                   '/Maze_Type_Chosen_Explanations/MazeType_' + str(self.maze_type).split('.')[-1]
 
-            num_explanations = len(os.listdir(explanation_dir))
-            chosen_explanation = np.random.randint(num_explanations)
-            agent_params['chosen_explanation'] = chosen_explanation
-
+            chosen_explanation = agent_params['chosen_explanation']
             with open(explanation_dir + '/Explanation_' +
                       str(chosen_explanation) + '.pkl', 'rb') as handle:
                 explanations = pickle.load(handle)
@@ -353,8 +350,13 @@ class Agent(object):
         w = self.GetWeighting(best_unit, state)
 
         if (w > self.exp_thresh and best_unit in self.chosen_units.tolist() and self.bLoad_exp):
-            ind = np.where(self.chosen_units == best_unit)[0][0]
-            action = self.explanation_actions[ind]
+
+            if (np.random.rand() > self.epsilon and not bTest):
+                action = np.random.randint(4)
+            else:
+                ind = np.where(self.chosen_units == best_unit)[0][0]
+                action = self.explanation_actions[ind]
+
             prev_q = self.QValues[best_unit, action]
         else:
             q_graph_values = np.squeeze(np.array(self.q_graph.GetActionValues(np.expand_dims(state, axis=0))))
@@ -467,6 +469,32 @@ class Agent(object):
         plt.close()
 
         self.eta_counter += 1
+
+        return
+
+    def SaveSOM(self):
+
+        actions_dict = {0: 'up', 1: 'down', 2: 'left', 3: 'right'}
+
+        action_inds = []
+
+        for i in range(self.QValues.shape[0]):
+            if np.all(self.QValues[i, :] == 0):
+                action_inds.append(np.random.randint(4))
+            else:
+                action_inds.append(np.argmax(self.QValues[i, :]))
+
+        som_actions = np.array([actions_dict[a] for a in action_inds])
+
+        som_contents = {
+            "xy": self.SOM.SOM_layer.units["xy"],
+            "w": self.SOM.SOM_layer.units["w"],
+            "values": self.QValues,
+            "actions": som_actions,
+        }
+
+        with open(self.directory + '/som_contents.pkl', 'wb') as f:
+            pickle.dump(som_contents, f, pickle.HIGHEST_PROTOCOL)
 
         return
 

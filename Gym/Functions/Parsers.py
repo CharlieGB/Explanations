@@ -31,16 +31,20 @@ def ParseDataFrame(folders, dir):
             results_dict['rewards'].append(dict['rewards'])
             results_dict['lengths'].append(dict['lengths'])
 
-            with open('Results/' + dir + '/' + folder + '/explanation.pkl', 'rb') as handle:
-                explanations = pickle.load(handle)
+            try:
+                with open('Results/' + dir + '/' + folder + '/explanation.pkl', 'rb') as handle:
+                    explanations = pickle.load(handle)
 
-            for key, value_dict in enumerate(explanations):
-                key = 'Explanation_' + str(key)
+                for key, value_dict in enumerate(explanations):
+                    key = 'Explanation_' + str(key)
 
-                if (key not in results_dict):
-                    results_dict[key] = []
+                    if (key not in results_dict):
+                        results_dict[key] = []
 
-                results_dict[key].append(value_dict)
+                    results_dict[key].append(value_dict)
+
+            except:
+                print("No explanation to parse...")
 
 
             file = open('Results/' + dir + '/' + folder + '/Settings.txt', 'r')

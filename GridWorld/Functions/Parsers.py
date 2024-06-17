@@ -16,7 +16,8 @@ def ParseIntoDataframes(dirs_to_compare):
 
 def ParseDataFrame(folders, dir):
 
-    results_dict = {'dir': [], 'rewards': [], 'lengths': [], 'chosen_explanation': [], 'maze': []}
+    results_dict = {'dir': [], 'rewards': [], 'lengths': [], 'chosen_explanation': [], 'maze': [],
+                    'som_memories': [], 'som_actions': []}
 
     for folder in folders:
 
@@ -30,6 +31,12 @@ def ParseDataFrame(folders, dir):
 
             results_dict['rewards'].append(dict['rewards'])
             results_dict['lengths'].append(dict['lengths'])
+
+            with open('Results/' + dir + '/' + folder + '/som_contents.pkl', 'rb') as handle:
+                som_contents = pickle.load(handle)
+
+            results_dict['som_memories'].append(som_contents['w'].copy())
+            results_dict['som_actions'].append(som_contents['actions'].copy())
 
             with open('Results/' + dir + '/' + folder + '/explanation.pkl', 'rb') as handle:
                 explanations = pickle.load(handle)

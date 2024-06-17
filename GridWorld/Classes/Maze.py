@@ -1,7 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.io as sio
 
 from GridWorld.Enums.Enums import MazeType
+
+BORDER_VAL = -2
 
 class Maze(object):
 
@@ -11,6 +14,8 @@ class Maze(object):
         np.random.seed(maze_params['random_seed'])
 
         self.type = maze_params['type']
+        if self.type == MazeType.human:
+            self.maze_num = maze_params['maze_num']
         self.width = maze_params['width']
         self.height = maze_params['height']
         self.num_hazards = maze_params['num_hazards']
@@ -38,6 +43,8 @@ class Maze(object):
             self.ConstructFirstObstacleMaze()
         elif (self.type == MazeType.obstacle2):
             self.ConstructSecondObstacleMaze()
+        elif (self.type == MazeType.human):
+            self.ConstructHumanMaze()
 
         plt.figure()
         plt.imshow(self.maze)
@@ -51,6 +58,18 @@ class Maze(object):
 
         return
 
+    def ConstructHumanMaze(self):
+
+        mat_file = sio.loadmat('GridWorld/Data/m' + str(self.maze_num))
+        maze = [list(s) for s in mat_file['m' + str(self.maze_num)]]
+        mapping = {'o': -1, 'e': 1, 'a': 2, 's': 0, 'b': BORDER_VAL}
+
+        for row in range(len(maze)):
+            for col in range(len(maze[0])):
+                maze[row][col] = mapping[maze[row][col]]
+
+        self.maze = np.array(maze).astype(np.int32)
+
     def ConstructRandomMaze(self):
 
         inds = np.random.choice(np.arange(self.height * self.width), self.num_hazards + self.num_rewards + 1,
@@ -59,7 +78,6 @@ class Maze(object):
         self.maze[inds[self.num_hazards:self.num_hazards + self.num_rewards]] = 1
         self.maze[inds[-1]] = 2
         self.maze = self.maze.reshape((self.height, self.width))
-
 
         return
 
@@ -123,19 +141,27 @@ class Maze(object):
 
         if (action == 0):
             if (self.state[0] > 0):
-                self.state[0] -= 1
+                next_state = self.state + np.array([-1, 0])
+                if self.working_maze[next_state[0], next_state[1]] != BORDER_VAL:
+                    self.state = next_state
 
         elif (action == 1):
             if (self.state[0] < self.height - 1):
-                self.state[0] += 1
+                next_state = self.state + np.array([1, 0])
+                if self.working_maze[next_state[0], next_state[1]] != BORDER_VAL:
+                    self.state = next_state
 
         elif (action == 2):
             if (self.state[1] > 0):
-                self.state[1] -= 1
+                next_state = self.state + np.array([0, -1])
+                if self.working_maze[next_state[0], next_state[1]] != BORDER_VAL:
+                    self.state = next_state
 
         elif (action == 3):
             if (self.state[1] < self.width - 1):
-                self.state[1] += 1
+                next_state = self.state + np.array([0, 1])
+                if self.working_maze[next_state[0], next_state[1]] != BORDER_VAL:
+                    self.state = next_state
 
         self.reward = self.working_maze[self.state[0], self.state[1]]
 

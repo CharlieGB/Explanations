@@ -44,12 +44,12 @@ def Run(env_params, agent_params):
     RecordSettings(results_dir, env_params, agent_params)
 
     # Run
-    RunEnv(agent, env, env_params)
+    RunEnv(agent, env, env_params, agent_params)
 
     return
 
 
-def RunEnv(agent, env, env_params):
+def RunEnv(agent, env, env_params, agent_params):
 
     trial = 1
     reward = 0
@@ -58,7 +58,8 @@ def RunEnv(agent, env, env_params):
     ti = 0
 
     print('Starting Trial ' + str(trial) + '...')
-    agent.PlotSOMResults(trial, env_params['env'])
+    if agent_params['bSOM']:
+        agent.PlotSOMResults(trial, env_params['env'])
     while trial <= env_params['num_trials']:
 
         ti += 1
@@ -73,7 +74,7 @@ def RunEnv(agent, env, env_params):
 
         if (bTrial_over):
 
-            if(trial % env_params['explanation_freq'] == 0):
+            if(trial % env_params['explanation_freq'] == 0) and agent_params['bSOM']:
 
                 # Save reward for resuming training
                 final_reward = np.copy(reward)
@@ -102,7 +103,7 @@ def RunEnv(agent, env, env_params):
             state = env.reset()
             print('\nStarting Trial ' + str(trial) + '...')
 
-            if (trial % env_params['print_freq'] == 0):
+            if (trial % env_params['print_freq'] == 0) and agent_params['bSOM']:
                 agent.PlotSOMResults(trial, env_params['env'])
 
     agent.PlotResults(env_params['env'])

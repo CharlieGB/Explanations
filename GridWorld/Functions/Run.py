@@ -103,6 +103,7 @@ def RunMaze(agent, maze, maze_params):
                 agent.PlotValueFunction()
 
     agent.PlotResults()
+    agent.SaveSOM()
 
     return
 
